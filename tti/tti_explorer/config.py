@@ -67,7 +67,7 @@ _case_configs = {
         inf_profile=np.full(5, 1 / 5).tolist(),
     ),
     "delve": dict(
-        p_for_categories=[.05, .05, .7, .05, .05, .05, .05],
+        p_for_categories=[.05, .05, .05, .05, .05, .05, .7],
         # following Kucharski.
         # This is currently independent from everything else.
         # symp covid neg, symp covid pos, asymp covid pos
