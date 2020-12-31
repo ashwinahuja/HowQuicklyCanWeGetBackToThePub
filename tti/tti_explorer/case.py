@@ -65,7 +65,7 @@ class CaseFactors:
 
 
 def simulate_case(
-    rng, p_for_categories, infection_proportions, p_day_noticed_symptoms, inf_profile
+    rng, p_for_categories_continued, p_for_categories, infection_proportions, p_day_noticed_symptoms, inf_profile
 ):
     """simulate_case
 
@@ -82,6 +82,11 @@ def simulate_case(
 
     Returns (Case): case with attributes populated.
     """
+    
+    if(p_for_categories_continued != []):
+        p_for_categories = p_for_categories_continued
+
+    
     (
         p_symptomatic_covid_neg,
         p_symptomatic_covid_pos,

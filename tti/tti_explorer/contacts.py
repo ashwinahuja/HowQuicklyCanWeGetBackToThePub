@@ -261,9 +261,14 @@ class EmpiricalContactsSimulator:
             work_day_inf = np.full_like(work_first_encounter, -1)
             other_day_inf = np.full_like(other_first_encounter, -1)
 
-        return Contacts(
+        # Get old_probs for the next round
+        old_probs_3 = [row[1]+row[8]+row[15], row[2]+row[9]+row[16], row[3]+row[10]+row[17], row[4]+row[11]+row[18], row[5]+row[12]+row[19], row[6]+row[13]+row[20], row[7]+row[14]+row[21]]
+        sum2 = sum(old_probs_3)
+        old_probs = [a/sum2 for a in old_probs_3]
+
+        return (Contacts(
             n_daily=dict(zip("home work other".split(), row)),
             home=np.column_stack((home_day_inf, home_first_encounter)),
             work=np.column_stack((work_day_inf, work_first_encounter)),
             other=np.column_stack((other_day_inf, other_first_encounter)),
-        )
+        ), old_probs)
