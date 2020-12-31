@@ -168,6 +168,40 @@ _case_configs = {
             he_infection_profile(period=10, gamma_params={"a": 2.80, "scale": 1 / 0.69})
         ).tolist(),
     ),
+    "delve_mostly_twenties": dict(
+        p_for_categories=[.05, .05, .05, .7, .05, .05, .05],
+        # following Kucharski.
+        # This is currently independent from everything else.
+        # symp covid neg, symp covid pos, asymp covid pos
+        infection_proportions={
+            "dist": [
+                100 / 120,
+                PROP_COVID_SYMPTOMATIC * 20 / 120,
+                (1 - PROP_COVID_SYMPTOMATIC) * 20 / 120,
+            ],
+            "nppl": 120,
+        },
+        # Distribution of day on which the case notices their symptoms
+        # This is conditinal on them being symptomatic at all
+        p_day_noticed_symptoms=[
+            0,
+            0.25,
+            0.25,
+            0.2,
+            0.1,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.00,
+        ],  # mean delay 3.05 days
+        # daily infectivity profile
+        # length of this determines simulation length
+        # should sum to 1
+        inf_profile=(
+            he_infection_profile(period=10, gamma_params={"a": 2.80, "scale": 1 / 0.69})
+        ).tolist(),
+    ),
     "delve-symptomatic": dict(
         p_for_categories=[.1, .1, .2, .2, .2, .2],
         # following Kucharski.

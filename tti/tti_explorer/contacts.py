@@ -227,15 +227,16 @@ class EmpiricalContactsSimulator:
         home_first_encounter = np.array(home_first_encounter2)
         scale = 1.0 if case.symptomatic else asymp_factor
 
-        
+        # Get old_probs for the next round
+        old_probs_3 = [row[1]+row[8]+row[15], row[2]+row[9]+row[16], row[3]+row[10]+row[17], row[4]+row[11]+row[18], row[5]+row[12]+row[19], row[6]+row[13]+row[20], row[7]+row[14]+row[21]]
+        sum2 = sum(old_probs_3)
+        old_probs = [a/sum2 for a in old_probs_3]
 
         if case.covid:
             home_is_infected = self.rng.binomial(1, scale * home_sar, s)
             home_inf_profile = home_daily_infectivity(case.inf_profile)
             day_infected = categorical(home_inf_profile, rng=self.rng, n=s)
             home_day_inf = np.where(home_is_infected, day_infected, NOT_INFECTED)
-            
-
 
             work_day_inf = day_infected_wo(
                 self.rng,
@@ -256,19 +257,50 @@ class EmpiricalContactsSimulator:
                 first_encounter=other_first_encounter,
                 not_infected=NOT_INFECTED,
             )
+
         else:
             home_day_inf = np.full_like(home_first_encounter, -1)
             work_day_inf = np.full_like(work_first_encounter, -1)
             other_day_inf = np.full_like(other_first_encounter, -1)
+        
+        death_rate = -1
+        death_rates_by_categories = [0, 0, 0.002, 0.002, 0.03, 0.02, 0.15]
 
-        # Get old_probs for the next round
-        old_probs_3 = [row[1]+row[8]+row[15], row[2]+row[9]+row[16], row[3]+row[10]+row[17], row[4]+row[11]+row[18], row[5]+row[12]+row[19], row[6]+row[13]+row[20], row[7]+row[14]+row[21]]
-        sum2 = sum(old_probs_3)
-        old_probs = [a/sum2 for a in old_probs_3]
+        if(case.covid):
+            h_number_of_cases = sum(1 for n in home_day_inf if n != -1)
+            w_number_of_cases = sum(1 for n in work_day_inf if n != -1)
+            o_number_of_cases = sum(1 for n in other_day_inf if n != -1)
+        
+            deaths = 0
+            total = h_number_of_cases + w_number_of_cases + o_number_of_cases + 1
+
+            # case.category
+            dr = death_rates_by_categories[case.category] 
+            #h_cases
+            for i in range(h_number_of_cases):
+                dr = death_rates_by_categories[self.rng.choice(range(7), p=p_home)] 
+                if self.rng.uniform() <= dr:
+                    deaths += 1
+
+            #work_cases
+            for i in range(w_number_of_cases):
+                dr = death_rates_by_categories[self.rng.choice(range(7), p=p_work)] 
+                if self.rng.uniform() <= dr:
+                    deaths += 1
+
+            for i in range(o_number_of_cases):
+                dr = death_rates_by_categories[self.rng.choice(range(7), p=p_other)] 
+                if self.rng.uniform() <= dr:
+                    deaths += 1
+            
+            death_rate = deaths / total
+
+
+
 
         return (Contacts(
-            n_daily=dict(zip("home work other".split(), row)),
+            n_daily=dict(zip("home work other".split(), [s, s2, s3])),
             home=np.column_stack((home_day_inf, home_first_encounter)),
             work=np.column_stack((work_day_inf, work_first_encounter)),
             other=np.column_stack((other_day_inf, other_first_encounter)),
-        ), old_probs)
+        ), old_probs, death_rate)
