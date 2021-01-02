@@ -29,7 +29,7 @@ _contacts_configs = {
         asymp_factor=0.5,
     ),
     "delve": dict(
-        home_sar=0.3, work_sar=0.045, other_sar=0.045, period=10, asymp_factor=0.5
+        home_sar=0.3, work_sar=0.045, other_sar=0.045, period=10, asymp_factor=0.5, p_vaccinated=0.25, vaccine_efficacy=0.75
     ),
 }
 

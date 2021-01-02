@@ -9,7 +9,6 @@ from .utils import categorical
 NOT_INFECTED = -1
 NCOLS = 2
 
-
 @dataclass
 class Contacts:
     n_daily: dict
@@ -80,7 +79,7 @@ def day_infected_wo(rng, probs, first_encounter, not_infected=NOT_INFECTED):
 class EmpiricalContactsSimulator:
     """Simulate social contact using BBC Pandemic data"""
 
-    def __init__(self, child_no_school, child_school, university, twenties, thirties_to_fifties, fifties_to_seventies, seventy_plus, rng):
+    def __init__(self, child_no_school, child_school, university, twenties, thirties_to_fifties, fifties_to_seventies, seventy_plus, p_vaccinated, vaccine_efficacy, vaccine_strategy, rng):
         """Simulate social contact using the BBC Pandemic dataset
 
             Each row in input arrays consists of three numbers,
@@ -99,6 +98,9 @@ class EmpiricalContactsSimulator:
         self.thirties_to_fifties = thirties_to_fifties
         self.fifties_to_seventies = fifties_to_seventies
         self.seventy_plus = seventy_plus
+        self.p_vaccinated = p_vaccinated
+        self.vaccine_efficacy = vaccine_efficacy
+        self.vaccine_strategy = vaccine_strategy
         self.rng = rng
 
     def sample_row(self, case):
@@ -114,7 +116,7 @@ class EmpiricalContactsSimulator:
             expected contacts for categories home, work and other.
             For under 18s, school contacts are interpreted as work contacts.
         """
-        
+
         if case.category == 0:
             table = self.child_no_school
         elif case.category == 1:
@@ -129,10 +131,10 @@ class EmpiricalContactsSimulator:
             table = self.fifties_to_seventies
         else:
             table = self.seventy_plus
-        
+
         return table[self.rng.randint(0, table.shape[0])]
 
-    def __call__(self, case, home_sar, work_sar, other_sar, asymp_factor, period):
+    def __call__(self, case, home_sar, work_sar, other_sar, asymp_factor, p_vaccinated, vaccine_efficacy, period):
         """Generate a social contact for the given case.
 
         A row from the table corresponding to the age of the `case` is sampled
@@ -149,6 +151,7 @@ class EmpiricalContactsSimulator:
             other_sar (float): Secondary attack rate for contacts in the other category.
             asymp_factor (float): Factor by which to multiply the probabilty of secondary
                                   infection if `case` is asymptomatic COVID positive.
+            prop_vaccinated (float): Proportion of population who have received covid vaccine.
             period (int): Duration of the simulation (days).
 
         Returns:
@@ -175,7 +178,7 @@ class EmpiricalContactsSimulator:
         home_first_encounter = np.zeros(0, dtype='int64')
         work_first_encounter = np.zeros(0,  dtype='int64')
         other_first_encounter = np.zeros(0, dtype='int64')
-        
+
         home_categories = np.zeros(0,  dtype='int64')
         work_categories = np.zeros(0,  dtype='int64')
         other_categories = np.zeros(0,  dtype='int64')
@@ -227,20 +230,28 @@ class EmpiricalContactsSimulator:
         home_first_encounter = np.array(home_first_encounter2)
         scale = 1.0 if case.symptomatic else asymp_factor
 
-        
+        # vaccination strategies
+        # if vaccine_strategy == 'gov':
+        #     vaccine_dist  = [0,0,0,0.01,0.04,0.2,0.75] # distribution of vaccines across our 7 age categories (sum to 1)
+        # elif vaccine_strategy == 'young':
+        #     vaccine_dist  = [0.25,0.25,0.25,0.25,0,0,0] # distribution of vaccines across our 7 age categories (sum to 1)
+        # else vaccine_strategy == 'random':
+
+        vaccine_factor = p_vaccinated * vaccine_efficacy
 
         if case.covid:
-            home_is_infected = self.rng.binomial(1, scale * home_sar, s)
+            home_is_infected = self.rng.binomial(1, scale * home_sar * (1-vaccine_factor), s)
             home_inf_profile = home_daily_infectivity(case.inf_profile)
             day_infected = categorical(home_inf_profile, rng=self.rng, n=s)
             home_day_inf = np.where(home_is_infected, day_infected, NOT_INFECTED)
-            
+
 
 
             work_day_inf = day_infected_wo(
                 self.rng,
                 probs=work_sar
                 * scale
+                * (1-vaccine_factor)
                 * period
                 * case.inf_profile[work_first_encounter],
                 first_encounter=work_first_encounter,
@@ -251,6 +262,7 @@ class EmpiricalContactsSimulator:
                 self.rng,
                 probs=other_sar
                 * scale
+                * (1-vaccine_factor)
                 * period
                 * case.inf_profile[other_first_encounter],
                 first_encounter=other_first_encounter,
