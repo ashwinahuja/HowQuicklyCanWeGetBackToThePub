@@ -134,7 +134,7 @@ class EmpiricalContactsSimulator:
 
         return table[self.rng.randint(0, table.shape[0])]
 
-    def __call__(self, case, home_sar, work_sar, other_sar, asymp_factor, p_vaccinated, vaccine_efficacy, period):
+    def __call__(self, case, home_sar, work_sar, other_sar, asymp_factor, p_vaccinated, vaccine_efficacy, vaccine_strategy, period):
         """Generate a social contact for the given case.
 
         A row from the table corresponding to the age of the `case` is sampled
@@ -230,41 +230,34 @@ class EmpiricalContactsSimulator:
         home_first_encounter = np.array(home_first_encounter2)
         scale = 1.0 if case.symptomatic else asymp_factor
 
-        # vaccination strategies
-        # if vaccine_strategy == 'gov':
-        #     vaccine_dist  = [0,0,0,0.01,0.04,0.2,0.75] # distribution of vaccines across our 7 age categories (sum to 1)
-        # elif vaccine_strategy == 'young':
-        #     vaccine_dist  = [0.25,0.25,0.25,0.25,0,0,0] # distribution of vaccines across our 7 age categories (sum to 1)
-        # else vaccine_strategy == 'random':
+        # vaccination strategies at 25% completion
+        if vaccine_strategy == 'gov':
+            vaccine_dist  = np.array([0, 0, 0, 0.2, 0.5, 0.8, 1]) # probability of person in each age category having been vaccinated
+        elif vaccine_strategy == 'young':
+            vaccine_dist  = np.array([0.8, 1, 1, .6, 0, 0, 0]) # probability of each age category having been vaccinated
+        elif vaccine_strategy == 'random':
+            vaccine_dist  = np.array([1]*7)
 
-        vaccine_factor = p_vaccinated * vaccine_efficacy
+        vaccine_factor = vaccine_dist * p_vaccinated * vaccine_efficacy
 
         if case.covid:
-            home_is_infected = self.rng.binomial(1, scale * home_sar * (1-vaccine_factor), s)
+            home_is_infected = [self.rng.binomial(1, scale * home_sar * (1-vaccine_factor[i]), 1) for i in home_categories]
             home_inf_profile = home_daily_infectivity(case.inf_profile)
             day_infected = categorical(home_inf_profile, rng=self.rng, n=s)
             home_day_inf = np.where(home_is_infected, day_infected, NOT_INFECTED)
 
 
-
             work_day_inf = day_infected_wo(
                 self.rng,
-                probs=work_sar
-                * scale
-                * (1-vaccine_factor)
-                * period
-                * case.inf_profile[work_first_encounter],
+                probs=[work_sar * scale * (1-vaccine_factor[i]) * period * case.inf_profile[work_first_encounter] for i in work_categories],
                 first_encounter=work_first_encounter,
                 not_infected=NOT_INFECTED,
             )
 
+
             other_day_inf = day_infected_wo(
                 self.rng,
-                probs=other_sar
-                * scale
-                * (1-vaccine_factor)
-                * period
-                * case.inf_profile[other_first_encounter],
+                probs=[other_sar * scale * (1-vaccine_factor[i]) * period * case.inf_profile[other_first_encounter] for i in other_categories],
                 first_encounter=other_first_encounter,
                 not_infected=NOT_INFECTED,
             )
