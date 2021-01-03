@@ -258,6 +258,8 @@ class EmpiricalContactsSimulator:
             vaccine_dist  = np.array(0.15*7) # 10 million double doses distributed with uniform probabilty to each age category
         elif ((vaccine_strategy == 'all')):
             vaccine_dist = np.ones(7)
+        elif ((vaccine_strategy == 'none')):
+            vaccine_dist = np.zeros(7)
         elif((vaccine_strategy.dtype==np.float64)):
             vaccine_dist = np.full(7, vaccine_strategy)
         
