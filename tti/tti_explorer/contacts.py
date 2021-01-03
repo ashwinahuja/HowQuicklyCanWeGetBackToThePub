@@ -256,14 +256,17 @@ class EmpiricalContactsSimulator:
             vaccine_dist  = np.array(0.30*7) # 20 million single doses distributed with uniform probabilty to each age category
         elif ((vaccine_strategy == 'equal') and (double_dose == True)):
             vaccine_dist  = np.array(0.15*7) # 10 million double doses distributed with uniform probabilty to each age category
-        
+        elif((vaccine_strategy.dtype==np.float64)):
+            vaccine_dist = np.full(7, int(vaccine_strategy))
         elif ((vaccine_strategy == 'all')):
             vaccine_dist = np.ones(7)
         else:
             vaccine_dist = np.zeros(7)
 
         # vaccine dosing strategy
-        if double_dose == True:
+        if double_dose == None:
+            vaccine_efficacy = 1
+        elif double_dose == True:
             vaccine_efficacy = 0.758 # weighted average of pfizer, az and moderna double dose efficacy
         else:
             vaccine_efficacy = 0.682 # weighted average of pfizer, az and moderna single dose efficacy
