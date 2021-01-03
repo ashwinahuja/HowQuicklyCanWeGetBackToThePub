@@ -322,31 +322,13 @@ class EmpiricalContactsSimulator:
             h_number_of_cases = sum(1 for n in home_day_inf if n != -1)
             w_number_of_cases = sum(1 for n in work_day_inf if n != -1)
             o_number_of_cases = sum(1 for n in other_day_inf if n != -1)
-
-            deaths = 0
             total = h_number_of_cases + w_number_of_cases + o_number_of_cases + 1
-
-            # case.category
-            dr = death_rates_by_categories[case.category]
-
-            #h_cases
-            for i in range(h_number_of_cases):
-                dr = death_rates_by_categories[self.rng.choice(range(7), p=p_home)]
-                if self.rng.uniform() <= dr:
-                    deaths += 1
-
-            #work_cases
-            for i in range(w_number_of_cases):
-                death_rates_by_categories[self.rng.choice(range(7), p=p_work)]
-                if self.rng.uniform() <= dr:
-                    deaths += 1
-
-            for i in range(o_number_of_cases):
-                dr = death_rates_by_categories[self.rng.choice(range(7), p=p_other)]
-                if self.rng.uniform() <= dr:
-                    deaths += 1
-
-            death_rate = deaths / total
+            if(total == 0):
+                pass
+            else:
+                v = [death_rates_by_categories[case.category], np.dot(death_rates_by_categories, p_home), np.dot(death_rates_by_categories, p_work), np.dot(death_rates_by_categories, p_other)]
+                v2 = [1/total, h_number_of_cases/total, w_number_of_cases/total, o_number_of_cases/total]
+                death_rate = np.dot(v, v2)
 
 
 
