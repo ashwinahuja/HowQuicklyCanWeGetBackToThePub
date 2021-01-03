@@ -29,7 +29,7 @@ _contacts_configs = {
         asymp_factor=0.5,
     ),
     "delve": dict(
-        home_sar=0.3, work_sar=0.045, other_sar=0.045, period=10, asymp_factor=0.5, double_dose=False, vaccine_strategy='gov'
+        home_sar=0.3, work_sar=0.045, other_sar=0.045, period=10, asymp_factor=0.5
     ),
 }
 
@@ -101,7 +101,7 @@ _case_configs = {
         ).tolist(),
     ),
     "delve": dict(
-        p_for_categories=[.15, .15, .15, .15, .15, .15, .1],
+        p_for_categories=[.042, .078, 0.11, 0.1, 0.32, .20, .15],
         # following Kucharski.
         # This is currently independent from everything else.
         # symp covid neg, symp covid pos, asymp covid pos

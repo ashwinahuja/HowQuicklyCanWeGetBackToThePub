@@ -134,7 +134,7 @@ class EmpiricalContactsSimulator:
 
         return table[self.rng.randint(0, table.shape[0])]
 
-    def __call__(self, case, home_sar, work_sar, other_sar, asymp_factor, period, double_dose, vaccine_strategy):
+    def __call__(self, case, double_dose, vaccine_strategy, home_sar, work_sar, other_sar, asymp_factor, period):
         """Generate a social contact for the given case.
 
         A row from the table corresponding to the age of the `case` is sampled
@@ -237,20 +237,30 @@ class EmpiricalContactsSimulator:
 
 
         # vaccination distribution strategies under double_dose strategy
-        if ((vaccine_strategy ==' gov') and (double_dose == False)):
-            vaccine_dist  = np.array([0, 0, 0, .25, 0.25, 0.75, 1]) # all over 70s, 75% 50-70s and 25% of 20-50s who are assumed to be frontline health workers or clinically vulnerable
+        if ((vaccine_strategy == 'gov') and (double_dose == False)):
+            vaccine_dist  = np.array([0, 0, 0.109, .159, 0.409, 0.226, 1]) # all over 70s, 75% 50-70s and 25% of 20-50s who are assumed to be frontline health workers or clinically vulnerable
         elif ((vaccine_strategy == 'gov') and (double_dose == True)):
-            vaccine_dist  = np.array([0, 0, 0, 0.1, 0.1, 0, 1]) # only over 70s and some frontline health and clinically vulnerable
+            vaccine_dist  = np.array([0, 0, 0, 0.05, 0.05, 0.05, 1]) # only over 70s and some frontline health and clinically vulnerable
 
-        elif ((vaccine_strategy == 'young') and (double_dose == False)):
-            vaccine_dist  = np.array([1, 1, 0.5, 0.25, 0, 0, 0]) # all schoolkids and some university and non-university 20 y/o
-        elif ((vaccine_strategy == 'young') and (double_dose == True)):
-            vaccine_dist  = np.array([1, 1, .25, 0, 0, 0, 0]) # all schoolkids and 25% of university students
+        elif ((vaccine_strategy == 'young_inc_children') and (double_dose == False)):
+            vaccine_dist  = np.array([1, 1, 0.533, 0.533, 0, 0, 0]) # all schoolkids and some university and non-university 20 y/o
+        elif ((vaccine_strategy == 'young_inc_children') and (double_dose == True)):
+            vaccine_dist  = np.array([.67, .67, 0, 0, 0, 0, 0]) # all schoolkids and 25% of university students
 
-        elif ((vaccine_strategy == 'random') and (double_dose == False)):
-            vaccine_dist  = np.array([1/3]*7) # 20 million single doses distributed with uniform probabilty to each age category
+        elif ((vaccine_strategy == 'young_exc_children') and (double_dose == False)):
+            vaccine_dist  = np.array([0, 0, 1, 1, .5, 0, 0]) # all schoolkids and some university and non-university 20 y/o
+        elif ((vaccine_strategy == 'young_exc_children') and (double_dose == True)):
+            vaccine_dist  = np.array([0, 0, .93, .93, 0, 0, 0]) # all schoolkids and 25% of university students
+
+        elif ((vaccine_strategy == 'equal') and (double_dose == False)):
+            vaccine_dist  = np.array(0.30*7) # 20 million single doses distributed with uniform probabilty to each age category
+        elif ((vaccine_strategy == 'equal') and (double_dose == True)):
+            vaccine_dist  = np.array(0.15*7) # 10 million double doses distributed with uniform probabilty to each age category
+        
+        elif ((vaccine_strategy == 'all')):
+            vaccine_dist = np.ones(7)
         else:
-            vaccine_dist  = np.array([1/6]*7) # 10 million double doses distributed with uniform probabilty to each age category
+            vaccine_dist = np.zeros(7)
 
         # vaccine dosing strategy
         if double_dose == True:
@@ -261,7 +271,9 @@ class EmpiricalContactsSimulator:
         vaccine_factor = vaccine_dist * vaccine_efficacy # probability of person in each age category having immunity
 
         vaccine_work = np.dot(p_work, vaccine_factor)
+
         vaccine_other = np.dot(p_other, vaccine_factor)
+
 
         if case.covid:
             home_is_infected = np.zeros(s)
@@ -276,23 +288,17 @@ class EmpiricalContactsSimulator:
             day_infected = categorical(home_inf_profile, rng=self.rng, n=s)
             home_day_inf = np.where(home_is_infected, day_infected, NOT_INFECTED)
 
-            home_is_infected = np.zeros(s)
-            for i in range(s):
-                # Sample a category from p_home
-                cat_of_contact = home_categories[i]
-                is_infected = self.rng.binomial(1, scale * home_sar * (1-vaccine_factor[cat_of_contact]))
-                home_is_infected[i] = is_infected
-
+            
             work_day_inf = day_infected_wo(
                 self.rng,
-                probs=work_sar * scale * vaccine_work * period * case.inf_profile[work_first_encounter],
+                probs=work_sar * scale * (1-vaccine_work) * period * case.inf_profile[work_first_encounter],
                 first_encounter=work_first_encounter,
                 not_infected=NOT_INFECTED,
             )
 
             other_day_inf = day_infected_wo(
                 self.rng,
-                probs=other_sar * scale * vaccine_other * period * case.inf_profile[other_first_encounter],
+                probs=other_sar * scale * (1-vaccine_other) * period * case.inf_profile[other_first_encounter],
                 first_encounter=other_first_encounter,
                 not_infected=NOT_INFECTED,
             )
@@ -303,7 +309,7 @@ class EmpiricalContactsSimulator:
             other_day_inf = np.full_like(other_first_encounter, -1)
 
         death_rate = -1
-        death_rates_by_categories = [0, 0, 0.002, 0.002, 0.03, 0.02, 0.15]
+        death_rates_by_categories = [0.0002, 0.008, 0.02, 0.02, 0.04, 0.07, 0.15]
 
         if(case.covid):
             h_number_of_cases = sum(1 for n in home_day_inf if n != -1)
@@ -315,6 +321,7 @@ class EmpiricalContactsSimulator:
 
             # case.category
             dr = death_rates_by_categories[case.category]
+            
             #h_cases
             for i in range(h_number_of_cases):
                 dr = death_rates_by_categories[self.rng.choice(range(7), p=p_home)]
@@ -323,7 +330,7 @@ class EmpiricalContactsSimulator:
 
             #work_cases
             for i in range(w_number_of_cases):
-                dr = death_rates_by_categories[self.rng.choice(range(7), p=p_work)]
+                death_rates_by_categories[self.rng.choice(range(7), p=p_work)]
                 if self.rng.uniform() <= dr:
                     deaths += 1
 
