@@ -29,7 +29,7 @@ _contacts_configs = {
         asymp_factor=0.5,
     ),
     "delve": dict(
-        home_sar=0.3, work_sar=0.045, other_sar=0.045, period=10, asymp_factor=0.5
+        home_sar=0.3, work_sar=0.045, other_sar=0.045, period=10, asymp_factor=0.5, double_dose=False, vaccine_strategy='gov'
     ),
     "delve_new_variant_low": dict(
         home_sar=0.43, work_sar=0.063, other_sar=0.063, period=10, asymp_factor=0.5

@@ -80,7 +80,7 @@ def day_infected_wo(rng, probs, first_encounter, not_infected=NOT_INFECTED):
 class EmpiricalContactsSimulator:
     """Simulate social contact using BBC Pandemic data"""
 
-    def __init__(self, child_no_school, child_school, university, twenties, thirties_to_fifties, fifties_to_seventies, seventy_plus, rng):
+    def __init__(self, child_no_school, child_school, university, twenties, thirties_to_fifties, fifties_to_seventies, seventy_plus, double_dose, vaccine_strategy, rng):
         """Simulate social contact using the BBC Pandemic dataset
 
             Each row in input arrays consists of three numbers,
@@ -99,6 +99,8 @@ class EmpiricalContactsSimulator:
         self.thirties_to_fifties = thirties_to_fifties
         self.fifties_to_seventies = fifties_to_seventies
         self.seventy_plus = seventy_plus
+        self.double_dose = double_dose
+        self.vaccine_strategy = vaccine_strategy
         self.rng = rng
 
     def sample_row(self, case):
@@ -114,7 +116,7 @@ class EmpiricalContactsSimulator:
             expected contacts for categories home, work and other.
             For under 18s, school contacts are interpreted as work contacts.
         """
-        
+
         if case.category == 0:
             table = self.child_no_school
         elif case.category == 1:
@@ -129,10 +131,10 @@ class EmpiricalContactsSimulator:
             table = self.fifties_to_seventies
         else:
             table = self.seventy_plus
-        
+
         return table[self.rng.randint(0, table.shape[0])]
 
-    def __call__(self, case, home_sar, work_sar, other_sar, asymp_factor, period):
+    def __call__(self, case, home_sar, work_sar, other_sar, asymp_factor, period, double_dose, vaccine_strategy):
         """Generate a social contact for the given case.
 
         A row from the table corresponding to the age of the `case` is sampled
@@ -175,7 +177,7 @@ class EmpiricalContactsSimulator:
         home_first_encounter = np.zeros(0, dtype='int64')
         work_first_encounter = np.zeros(0,  dtype='int64')
         other_first_encounter = np.zeros(0, dtype='int64')
-        
+
         home_categories = np.zeros(0,  dtype='int64')
         work_categories = np.zeros(0,  dtype='int64')
         other_categories = np.zeros(0,  dtype='int64')
@@ -232,28 +234,65 @@ class EmpiricalContactsSimulator:
         sum2 = sum(old_probs_3)
         old_probs = [a/sum2 for a in old_probs_3]
 
+
+
+        # vaccination distribution strategies under double_dose strategy
+        if ((vaccine_strategy ==' gov') and (double_dose == False)):
+            vaccine_dist  = np.array([0, 0, 0, .25, 0.25, 0.75, 1]) # all over 70s, 75% 50-70s and 25% of 20-50s who are assumed to be frontline health workers or clinically vulnerable
+        elif ((vaccine_strategy == 'gov') and (double_dose == True)):
+            vaccine_dist  = np.array([0, 0, 0, 0.1, 0.1, 0, 1]) # only over 70s and some frontline health and clinically vulnerable
+
+        elif ((vaccine_strategy == 'young') and (double_dose == False)):
+            vaccine_dist  = np.array([1, 1, 0.5, 0.25, 0, 0, 0]) # all schoolkids and some university and non-university 20 y/o
+        elif ((vaccine_strategy == 'young') and (double_dose == True)):
+            vaccine_dist  = np.array([1, 1, .25, 0, 0, 0, 0]) # all schoolkids and 25% of university students
+
+        elif ((vaccine_strategy == 'random') and (double_dose == False)):
+            vaccine_dist  = np.array([1/3]*7) # 20 million single doses distributed with uniform probabilty to each age category
+        else:
+            vaccine_dist  = np.array([1/6]*7) # 10 million double doses distributed with uniform probabilty to each age category
+
+        # vaccine dosing strategy
+        if double_dose == True:
+            vaccine_efficacy = 0.758 # weighted average of pfizer, az and moderna double dose efficacy
+        else:
+            vaccine_efficacy = 0.682 # weighted average of pfizer, az and moderna single dose efficacy
+
+        vaccine_factor = vaccine_dist * vaccine_efficacy # probability of person in each age category having immunity
+
+        vaccine_work = np.dot(p_work, vaccine_factor)
+        vaccine_other = np.dot(p_other, vaccine_factor)
+
         if case.covid:
-            home_is_infected = self.rng.binomial(1, scale * home_sar, s)
+            home_is_infected = np.zeros(s)
+            for i in range(s):
+                # Sample a category from p_home
+                cat_of_contact = home_categories[i]
+                is_infected = self.rng.binomial(1, scale * home_sar * (1-vaccine_factor[cat_of_contact]))
+                home_is_infected[i] = is_infected
+
+            #home_is_infected = [self.rng.binomial(1, scale * home_sar * (1-vaccine_factor[i]), 1) for i in home_categories]
             home_inf_profile = home_daily_infectivity(case.inf_profile)
             day_infected = categorical(home_inf_profile, rng=self.rng, n=s)
             home_day_inf = np.where(home_is_infected, day_infected, NOT_INFECTED)
 
+            home_is_infected = np.zeros(s)
+            for i in range(s):
+                # Sample a category from p_home
+                cat_of_contact = home_categories[i]
+                is_infected = self.rng.binomial(1, scale * home_sar * (1-vaccine_factor[cat_of_contact]))
+                home_is_infected[i] = is_infected
+
             work_day_inf = day_infected_wo(
                 self.rng,
-                probs=work_sar
-                * scale
-                * period
-                * case.inf_profile[work_first_encounter],
+                probs=work_sar * scale * vaccine_work * period * case.inf_profile[work_first_encounter],
                 first_encounter=work_first_encounter,
                 not_infected=NOT_INFECTED,
             )
 
             other_day_inf = day_infected_wo(
                 self.rng,
-                probs=other_sar
-                * scale
-                * period
-                * case.inf_profile[other_first_encounter],
+                probs=other_sar * scale * vaccine_other * period * case.inf_profile[other_first_encounter],
                 first_encounter=other_first_encounter,
                 not_infected=NOT_INFECTED,
             )
@@ -262,7 +301,7 @@ class EmpiricalContactsSimulator:
             home_day_inf = np.full_like(home_first_encounter, -1)
             work_day_inf = np.full_like(work_first_encounter, -1)
             other_day_inf = np.full_like(other_first_encounter, -1)
-        
+
         death_rate = -1
         death_rates_by_categories = [0, 0, 0.002, 0.002, 0.03, 0.02, 0.15]
 
@@ -270,29 +309,29 @@ class EmpiricalContactsSimulator:
             h_number_of_cases = sum(1 for n in home_day_inf if n != -1)
             w_number_of_cases = sum(1 for n in work_day_inf if n != -1)
             o_number_of_cases = sum(1 for n in other_day_inf if n != -1)
-        
+
             deaths = 0
             total = h_number_of_cases + w_number_of_cases + o_number_of_cases + 1
 
             # case.category
-            dr = death_rates_by_categories[case.category] 
+            dr = death_rates_by_categories[case.category]
             #h_cases
             for i in range(h_number_of_cases):
-                dr = death_rates_by_categories[self.rng.choice(range(7), p=p_home)] 
+                dr = death_rates_by_categories[self.rng.choice(range(7), p=p_home)]
                 if self.rng.uniform() <= dr:
                     deaths += 1
 
             #work_cases
             for i in range(w_number_of_cases):
-                dr = death_rates_by_categories[self.rng.choice(range(7), p=p_work)] 
+                dr = death_rates_by_categories[self.rng.choice(range(7), p=p_work)]
                 if self.rng.uniform() <= dr:
                     deaths += 1
 
             for i in range(o_number_of_cases):
-                dr = death_rates_by_categories[self.rng.choice(range(7), p=p_other)] 
+                dr = death_rates_by_categories[self.rng.choice(range(7), p=p_other)]
                 if self.rng.uniform() <= dr:
                     deaths += 1
-            
+
             death_rate = deaths / total
 
 
