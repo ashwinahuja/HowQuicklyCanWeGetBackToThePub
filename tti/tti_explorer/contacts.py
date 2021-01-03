@@ -134,7 +134,7 @@ class EmpiricalContactsSimulator:
 
         return table[self.rng.randint(0, table.shape[0])]
 
-    def __call__(self, case, double_dose, vaccine_strategy, home_sar, work_sar, other_sar, asymp_factor, period):
+    def __call__(self, case, double_dose, vaccine_strategy, vaccine_efficacy, home_sar, work_sar, other_sar, asymp_factor, period):
         """Generate a social contact for the given case.
 
         A row from the table corresponding to the age of the `case` is sampled
@@ -257,19 +257,20 @@ class EmpiricalContactsSimulator:
         elif ((vaccine_strategy == 'equal') and (double_dose == True)):
             vaccine_dist  = np.array(0.15*7) # 10 million double doses distributed with uniform probabilty to each age category
         elif((vaccine_strategy.dtype==np.float64)):
-            vaccine_dist = np.full(7, int(vaccine_strategy))
+            vaccine_dist = np.full(7, vaccine_strategy)
         elif ((vaccine_strategy == 'all')):
             vaccine_dist = np.ones(7)
         else:
             vaccine_dist = np.zeros(7)
 
-        # vaccine dosing strategy
-        if double_dose == None:
-            vaccine_efficacy = 1
-        elif double_dose == True:
-            vaccine_efficacy = 0.758 # weighted average of pfizer, az and moderna double dose efficacy
-        else:
-            vaccine_efficacy = 0.682 # weighted average of pfizer, az and moderna single dose efficacy
+        if vaccine_efficacy is None:
+            # vaccine dosing strategy
+            if double_dose == None:
+                vaccine_efficacy = 1
+            elif double_dose == True:
+                vaccine_efficacy = 0.758 # weighted average of pfizer, az and moderna double dose efficacy
+            else:
+                vaccine_efficacy = 0.682 # weighted average of pfizer, az and moderna single dose vaccine_efficacy
 
         vaccine_factor = vaccine_dist * vaccine_efficacy # probability of person in each age category having immunity
 
@@ -291,7 +292,7 @@ class EmpiricalContactsSimulator:
             day_infected = categorical(home_inf_profile, rng=self.rng, n=s)
             home_day_inf = np.where(home_is_infected, day_infected, NOT_INFECTED)
 
-            
+
             work_day_inf = day_infected_wo(
                 self.rng,
                 probs=work_sar * scale * (1-vaccine_work) * period * case.inf_profile[work_first_encounter],
@@ -324,7 +325,7 @@ class EmpiricalContactsSimulator:
 
             # case.category
             dr = death_rates_by_categories[case.category]
-            
+
             #h_cases
             for i in range(h_number_of_cases):
                 dr = death_rates_by_categories[self.rng.choice(range(7), p=p_home)]
