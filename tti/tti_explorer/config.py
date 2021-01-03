@@ -31,6 +31,12 @@ _contacts_configs = {
     "delve": dict(
         home_sar=0.3, work_sar=0.045, other_sar=0.045, period=10, asymp_factor=0.5
     ),
+    "delve_new_variant_low": dict(
+        home_sar=0.43, work_sar=0.063, other_sar=0.063, period=10, asymp_factor=0.5
+    ),
+    "delve_new_variant_high": dict(
+        home_sar=0.51, work_sar=0.0765, other_sar=0.0765, period=10, asymp_factor=0.5
+    ),
 }
 
 _contacts_configs["delve-symptomatic"] = dict(**_contacts_configs["delve"])
