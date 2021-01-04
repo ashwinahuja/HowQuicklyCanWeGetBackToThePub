@@ -1,0 +1,50 @@
+CONFIG: (Double Dose: True, Strategy: none)
+Base R Rate: 3.99
+Effective R Rate: 1.31
+Mortality Rate: 0.0374
+
+CONFIG: (Double Dose: True, Strategy: all)
+Base R Rate: 0.93
+Effective R Rate: 0.3
+Mortality Rate: 0.0374
+
+CONFIG: (Double Dose: True, Strategy: gov)
+Base R Rate: 3.86
+Effective R Rate: 1.23
+Mortality Rate: 0.0365
+
+CONFIG: (Double Dose: True, Strategy: young_inc_children)
+Base R Rate: 3.04
+Effective R Rate: 1.0
+Mortality Rate: 0.0371
+
+CONFIG: (Double Dose: True, Strategy: young_exc_children)
+Base R Rate: 4.02
+Effective R Rate: 1.3
+Mortality Rate: 0.0367
+
+CONFIG: (Double Dose: False, Strategy: none)
+Base R Rate: 3.98
+Effective R Rate: 1.31
+Mortality Rate: 0.0367
+
+CONFIG: (Double Dose: False, Strategy: all)
+Base R Rate: 1.26
+Effective R Rate: 0.41
+Mortality Rate: 0.037
+
+CONFIG: (Double Dose: False, Strategy: gov)
+Base R Rate: 3.39
+Effective R Rate: 1.09
+Mortality Rate: 0.0368
+
+CONFIG: (Double Dose: False, Strategy: young_inc_children)
+Base R Rate: 2.74
+Effective R Rate: 0.89
+Mortality Rate: 0.0374
+
+CONFIG: (Double Dose: False, Strategy: young_exc_children)
+Base R Rate: 3.57
+Effective R Rate: 1.18
+Mortality Rate: 0.037
+
