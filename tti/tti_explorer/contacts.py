@@ -134,7 +134,7 @@ class EmpiricalContactsSimulator:
 
         return table[self.rng.randint(0, table.shape[0])]
 
-    def __call__(self, case, double_dose, vaccine_strategy, vaccine_efficacy, home_sar, work_sar, other_sar, asymp_factor, period):
+    def __call__(self, case, double_dose, vaccine_strategy, vaccine_strategy2, vaccine_efficacy, home_sar, work_sar, other_sar, asymp_factor, period):
         """Generate a social contact for the given case.
 
         A row from the table corresponding to the age of the `case` is sampled
@@ -235,9 +235,10 @@ class EmpiricalContactsSimulator:
         old_probs = [a/sum2 for a in old_probs_3]
 
 
-
+        if(vaccine_strategy2 is not None):
+            vaccine_dist = vaccine_strategy2
         # vaccination distribution strategies under double_dose strategy
-        if ((vaccine_strategy == 'gov') and (double_dose == False)):
+        elif ((vaccine_strategy == 'gov') and (double_dose == False)):
             vaccine_dist  = np.array([0, 0, 0.109, .159, 0.409, 0.226, 1]) # all over 70s, 75% 50-70s and 25% of 20-50s who are assumed to be frontline health workers or clinically vulnerable
         elif ((vaccine_strategy == 'gov') and (double_dose == True)):
             vaccine_dist  = np.array([0, 0, 0, 0.05, 0.05, 0.05, 1]) # only over 70s and some frontline health and clinically vulnerable

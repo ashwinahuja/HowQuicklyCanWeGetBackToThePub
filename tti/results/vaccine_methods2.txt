@@ -1,5 +1,20 @@
+CONFIG: (Double Dose: False, Strategy: none)
+Base R Rate: 4.04
+Effective R Rate: 1.42
+Mortality Rate: 0.0146
+
+CONFIG: (Double Dose: True, Strategy: 30s_prioritised)
+Base R Rate: 3.28
+Effective R Rate: 1.14
+Mortality Rate: 0.0111
+
 CONFIG: (Double Dose: True, Strategy: equal)
-Base R Rate: 3.52
-Effective R Rate: 1.17
-Mortality Rate: 0.0131
+Base R Rate: 3.7
+Effective R Rate: 1.24
+Mortality Rate: 0.0121
+
+CONFIG: (Double Dose: True, Strategy: gov)
+Base R Rate: 3.9
+Effective R Rate: 1.32
+Mortality Rate: 0.0114
 
