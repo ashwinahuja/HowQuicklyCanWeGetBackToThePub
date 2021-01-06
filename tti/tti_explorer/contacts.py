@@ -324,11 +324,17 @@ class EmpiricalContactsSimulator:
         death_rate = -1
         death_rates_by_categories = [0.0002, 0.008, 0.02, 0.02, 0.04, 0.07, 0.15]
 
+
         if(case.covid):
             h_number_of_cases = sum(1 for n in home_day_inf if n != -1)
             w_number_of_cases = sum(1 for n in work_day_inf if n != -1)
             o_number_of_cases = sum(1 for n in other_day_inf if n != -1)
-            total = s+s2+s3 + 1
+            
+            s *= home_sar
+            s2 *= work_sar
+            s3 *= other_sar
+
+            total = s+s2+s3
             
             if(total == 0):
                 pass
@@ -336,13 +342,10 @@ class EmpiricalContactsSimulator:
                 for i in range(len(death_rates_by_categories)):
                     death_rates_by_categories[i] *=  (1-vaccine_factor[i])
                 
-                v = [death_rates_by_categories[case.category], np.dot(death_rates_by_categories, p_home), np.dot(death_rates_by_categories, p_work), np.dot(death_rates_by_categories, p_other)]
-                v2 = [1/total, s/total, s2/total, s3/total]
+                v = [np.dot(death_rates_by_categories, p_home), np.dot(death_rates_by_categories, p_work), np.dot(death_rates_by_categories, p_other)]
+                v2 = [s/total, s2/total, s3/total]
                 
                 death_rate = np.dot(v, v2)
-
-
-
 
         return (Contacts(
             n_daily=dict(zip("home work other".split(), [s, s2, s3])),
