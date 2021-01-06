@@ -1,5 +1,5 @@
 CONFIG: (Double Dose: True, Strategy: equal)
-Base R Rate: 3.63
-Effective R Rate: 1.21
-Mortality Rate: 0.0362
+Base R Rate: 3.52
+Effective R Rate: 1.17
+Mortality Rate: 0.0131
 
