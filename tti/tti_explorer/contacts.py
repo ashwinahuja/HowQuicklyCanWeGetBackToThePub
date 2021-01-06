@@ -251,11 +251,17 @@ class EmpiricalContactsSimulator:
             vaccine_dist  = np.array([0, 0, 1, 1, .5, 0, 0]) # all schoolkids and some university and non-university 20 y/o
         elif ((vaccine_strategy == 'young_exc_children') and (double_dose == True)):
             vaccine_dist  = np.array([0, 0, .93, .93, 0, 0, 0]) # all schoolkids and 25% of university students
+        
+        elif ((vaccine_strategy == '30s_prioritised') and (double_dose == False)):
+            vaccine_dist  = np.array([0.0271, 0.0271, 0.0271, 0.0271, 1, 0.0271, 0.0271]) # all schoolkids and some university and non-university 20 y/o
+        elif ((vaccine_strategy == '30s_prioritised') and (double_dose == True)):
+            vaccine_dist  = np.array([0, 0, 0, 0, .535, 0, 0]) # all schoolkids and 25% of university students
 
         elif ((vaccine_strategy == 'equal') and (double_dose == False)):
-            vaccine_dist  = np.array(0.30*7) # 20 million single doses distributed with uniform probabilty to each age category
+            vaccine_dist  = np.full(7, 0.30) # 20 million single doses distributed with uniform probabilty to each age category
         elif ((vaccine_strategy == 'equal') and (double_dose == True)):
-            vaccine_dist  = np.array(0.15*7) # 10 million double doses distributed with uniform probabilty to each age category
+            vaccine_dist  = np.full(7, 0.15) # 10 million double doses distributed with uniform probabilty to each age category
+        
         elif ((vaccine_strategy == 'all')):
             vaccine_dist = np.ones(7)
         elif ((vaccine_strategy == 'none')):
@@ -322,12 +328,17 @@ class EmpiricalContactsSimulator:
             h_number_of_cases = sum(1 for n in home_day_inf if n != -1)
             w_number_of_cases = sum(1 for n in work_day_inf if n != -1)
             o_number_of_cases = sum(1 for n in other_day_inf if n != -1)
-            total = h_number_of_cases + w_number_of_cases + o_number_of_cases + 1
+            total = s+s2+s3 + 1
+            
             if(total == 0):
                 pass
             else:
+                for i in range(len(death_rates_by_categories)):
+                    death_rates_by_categories[i] *=  (1-vaccine_factor[i])
+                
                 v = [death_rates_by_categories[case.category], np.dot(death_rates_by_categories, p_home), np.dot(death_rates_by_categories, p_work), np.dot(death_rates_by_categories, p_other)]
-                v2 = [1/total, h_number_of_cases/total, w_number_of_cases/total, o_number_of_cases/total]
+                v2 = [1/total, s/total, s2/total, s3/total]
+                
                 death_rate = np.dot(v, v2)
 
 
